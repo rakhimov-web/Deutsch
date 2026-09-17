@@ -93,6 +93,13 @@ export interface SidebarWithTabsProps {
   defaultNavId?: string;
   /** Optional footer content (e.g. user profile) */
   footer?: React.ReactNode;
+  /**
+   * Optional custom nav list (e.g. a nested accordion). When provided it
+   * replaces the default flat nav list in both the desktop rail and the
+   * mobile sheet; icon-only collapse is disabled since custom nav content
+   * isn't guaranteed to support it.
+   */
+  navContent?: React.ReactNode;
 }
 
 interface TabsContextValue {
@@ -107,9 +114,24 @@ interface TabsContextValue {
   closeToLeft: (tabId: string) => void;
   closeAll: () => void;
   setActiveTab: (tabId: string) => void;
+  /** Replaces every open tab with a single fresh tab on the given nav id. */
+  clearHistory: (navId: string) => void;
 }
 
 const TabsContext = createContext<TabsContextValue | null>(null);
+
+/**
+ * Provided only while rendering inside the mobile Sheet, so custom
+ * navContent/footer links can close the sheet after navigating without
+ * the shell needing to know anything about their internals.
+ */
+export const MobileSheetCloseContext = createContext<(() => void) | null>(null);
+
+/** Call after navigating from custom sidebar content; no-ops on desktop. */
+export function useCloseMobileSheet() {
+  const close = useContext(MobileSheetCloseContext);
+  return close ?? (() => {});
+}
 
 /**
  * Custom hook to access tab context.
@@ -161,7 +183,7 @@ function ChromeTab({
 }) {
   const nav = navItems.find((n) => n.id === tab.activeNavId);
   const Icon = nav?.icon;
-  const label = nav?.label || 'New Tab';
+  const label = nav?.label || 'Neuer Tab';
   const tabRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -304,21 +326,21 @@ function ChromeTab({
           )}
         </div>
       </ContextMenuTrigger>
-      <ContextMenuContent className='w-48'>
+      <ContextMenuContent className='w-52'>
         <ContextMenuItem onClick={onTabClose} disabled={!canClose}>
-          Close Tab
+          Tab schließen
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem onClick={onCloseOthers} disabled={!hasOtherTabs}>
-          Close Other Tabs
+          Andere schließen
         </ContextMenuItem>
         <ContextMenuItem onClick={onCloseToRight} disabled={!hasTabsToRight}>
           <ChevronRight className='mr-2 h-4 w-4' />
-          Close Tabs to the Right
+          Rechts schließen
         </ContextMenuItem>
         <ContextMenuItem onClick={onCloseToLeft} disabled={!hasTabsToLeft}>
           <ChevronLeft className='mr-2 h-4 w-4' />
-          Close Tabs to the Left
+          Links schließen
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
@@ -417,12 +439,16 @@ function MobileSidebar({
   navItems,
   activeNavId,
   onItemClick,
+  navContent,
+  footer,
 }: {
   logo?: React.ReactNode;
   companyName: string;
   navItems: NavItem[];
   activeNavId: string;
   onItemClick: (item: NavItem) => void;
+  navContent?: React.ReactNode;
+  footer?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -443,7 +469,7 @@ function MobileSidebar({
         </Button>
       </SheetTrigger>
       <SheetContent side='left' className='w-72 p-0 border-r-0'>
-        <SheetTitle className='sr-only'>Sidebar Navigation</SheetTitle>
+        <SheetTitle className='sr-only'>Navigation</SheetTitle>
         <div className='flex flex-col h-full bg-sidebar'>
           <div className='flex items-center gap-3 p-5 border-b border-sidebar-border'>
             {logo || (
@@ -457,14 +483,23 @@ function MobileSidebar({
               {companyName}
             </span>
           </div>
-          <div className='flex-1 py-4'>
-            <SidebarNavigation
-              navItems={navItems}
-              activeNavId={activeNavId}
-              isCollapsed={false}
-              onItemClick={handleItemClick}
-            />
+          <div className='flex-1 py-4 overflow-y-auto scrollbar-hide'>
+            <MobileSheetCloseContext.Provider value={() => setOpen(false)}>
+              {navContent ?? (
+                <SidebarNavigation
+                  navItems={navItems}
+                  activeNavId={activeNavId}
+                  isCollapsed={false}
+                  onItemClick={handleItemClick}
+                />
+              )}
+            </MobileSheetCloseContext.Provider>
           </div>
+          {footer && (
+            <div className='p-3 pb-5'>
+              <MobileSheetCloseContext.Provider value={() => setOpen(false)}>{footer}</MobileSheetCloseContext.Provider>
+            </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>
@@ -547,7 +582,7 @@ function NewTabButton({
         sideOffset={8}
       >
         <div className='text-xs text-muted-foreground px-2 py-1.5 font-medium'>
-          Quick Open
+          Schnellzugriff
         </div>
         {navItems.map((item) => (
           <button
@@ -574,6 +609,7 @@ export function SidebarWithTabs({
   renderContent,
   defaultNavId,
   footer,
+  navContent,
 }: SidebarWithTabsProps) {
   const defaultNav = defaultNavId || navItems[0]?.id || '';
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -586,7 +622,7 @@ export function SidebarWithTabs({
   // Hydrate state from storage
   useEffect(() => {
     setIsClient(true);
-    const savedState = localStorage.getItem('sidebar-tabs-state');
+    const savedState = localStorage.getItem('sidebar-tabs-state-v2');
 
     if (savedState) {
       try {
@@ -619,7 +655,7 @@ export function SidebarWithTabs({
 
     const handler = setTimeout(() => {
       localStorage.setItem(
-        'sidebar-tabs-state',
+        'sidebar-tabs-state-v2',
         JSON.stringify({ tabs, activeTabId })
       );
     }, 500); // Debounce to prevent heavy writes
@@ -722,6 +758,16 @@ export function SidebarWithTabs({
     setActiveTabId(firstTab.id);
   }, [tabs]);
 
+  const clearHistory = useCallback((navId: string) => {
+    tabCounterRef.current += 1;
+    const freshTab: Tab = {
+      id: `tab-${tabCounterRef.current}-${Date.now()}`,
+      activeNavId: navId,
+    };
+    setTabs([freshTab]);
+    setActiveTabId(freshTab.id);
+  }, []);
+
   const setActiveTab = useCallback((tabId: string) => {
     setActiveTabId(tabId);
   }, []);
@@ -746,6 +792,7 @@ export function SidebarWithTabs({
       closeToLeft,
       closeAll,
       setActiveTab,
+      clearHistory,
     }),
     [
       tabs,
@@ -759,6 +806,7 @@ export function SidebarWithTabs({
       closeToLeft,
       closeAll,
       setActiveTab,
+      clearHistory,
     ]
   );
 
@@ -808,7 +856,7 @@ export function SidebarWithTabs({
                     )}
                   </AnimatePresence>
                 </div>
-                {!isCollapsed && (
+                {!isCollapsed && !navContent && (
                   <Button
                     variant='ghost'
                     size='icon'
@@ -820,7 +868,7 @@ export function SidebarWithTabs({
                 )}
               </div>
 
-              {isCollapsed && (
+              {isCollapsed && !navContent && (
                 <div className='flex justify-center py-2 border-b border-sidebar-border'>
                   <Button
                     variant='ghost'
@@ -834,15 +882,17 @@ export function SidebarWithTabs({
               )}
 
               <div className='flex-1 py-4 overflow-y-auto scrollbar-hide'>
-                <SidebarNavigation
-                  navItems={navItems}
-                  activeNavId={activeNavId}
-                  isCollapsed={isCollapsed}
-                  onItemClick={handleNavItemClick}
-                />
+                {navContent ?? (
+                  <SidebarNavigation
+                    navItems={navItems}
+                    activeNavId={activeNavId}
+                    isCollapsed={isCollapsed}
+                    onItemClick={handleNavItemClick}
+                  />
+                )}
               </div>
 
-              <div className='p-4 border-t border-sidebar-border h-[73px] flex items-center justify-center overflow-hidden'>
+              <div className={cn('p-3 flex items-center justify-center overflow-hidden', isCollapsed ? 'h-[73px]' : 'min-h-[56px]')}>
                 <AnimatePresence mode='wait'>
                   {!isCollapsed ? (
                     footer ? (
@@ -893,6 +943,8 @@ export function SidebarWithTabs({
                   navItems={navItems}
                   activeNavId={activeNavId}
                   onItemClick={handleNavItemClick}
+                  navContent={navContent}
+                  footer={footer}
                 />
               </div>
 
@@ -965,10 +1017,10 @@ export function SidebarWithTabs({
                     <MoreHorizontal className='h-5 w-5' />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align='end' className='w-48'>
+                <DropdownMenuContent align='end' className='w-52'>
                   <DropdownMenuItem onClick={() => addTab()}>
                     <Plus className='mr-2 h-4 w-4' />
-                    New Tab
+                    Neuer Tab
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
@@ -979,7 +1031,7 @@ export function SidebarWithTabs({
                     )}
                   >
                     <Trash2 className='mr-2 h-4 w-4' />
-                    Close All Tabs
+                    Alle Tabs schließen
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -996,10 +1048,10 @@ export function SidebarWithTabs({
                 <AnimatePresence mode='wait'>
                   <motion.div
                     key={`${activeTabId}-${activeNavId}`}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
                     className='h-full'
                   >
                     {renderContent(activeNavId)}
