@@ -24,8 +24,8 @@ const faqs: { q: string; a: string }[] = [
 const structure = [
   {
     icon: FolderTree,
-    title: "Darslar (Lessons)",
-    body: "Har bir Lektion uchun umumiy ko'rinish — qamrab olingan mavzular va qanday davom etish kerakligi.",
+    title: "Kurse (sidebar)",
+    body: "Chap paneldagi 'Kurse' ro'yxati — har bir Lektion o'z bo'limida, ichida Grammatik va Wortschatz havolalari bilan.",
   },
   {
     icon: Blocks,
@@ -52,7 +52,7 @@ export default function GuidePage() {
         lead="Lernraum — bitta dasturchining nemis tilini o'rganish va bilimlarni tartibga solish uchun tirik omborxonasi. Quyida loyihaning ishlash mantig'i tushuntirilgan."
       />
 
-      <div className="px-8 pb-12 md:px-12">
+      <div className="px-4 pb-10 sm:px-8 sm:pb-12 md:px-12">
         <section className="grid gap-4 sm:grid-cols-2">
           {structure.map((item) => (
             <div

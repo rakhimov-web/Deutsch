@@ -28,6 +28,7 @@ import {
   SheetContent,
   SheetTrigger,
   SheetTitle,
+  SheetClose,
 } from '@/components/ui/sheet';
 import {
   Tooltip,
@@ -310,7 +311,7 @@ function ChromeTab({
                   onTabClose();
                 }}
                 className={cn(
-                  'flex h-5 w-5 items-center justify-center rounded-full transition-colors flex-shrink-0',
+                  'flex h-5 w-5 items-center justify-center rounded-full transition-colors active:scale-90 flex-shrink-0',
                   isActive
                     ? 'hover:bg-muted text-muted-foreground hover:text-foreground'
                     : 'opacity-0 group-hover:opacity-100 hover:bg-sidebar-accent text-muted-foreground hover:text-sidebar-foreground'
@@ -370,7 +371,7 @@ function SidebarNavigation({
             key={item.id}
             onClick={() => onItemClick(item)}
             className={cn(
-              'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left relative',
+              'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left relative active:scale-[0.98]',
               isActive
                 ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                 : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
@@ -463,25 +464,36 @@ function MobileSidebar({
         <Button
           variant='ghost'
           size='icon'
-          className='h-9 w-9 text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent flex-shrink-0'
+          className='h-9 w-9 text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent active:scale-90 transition-transform flex-shrink-0'
         >
           <Menu className='h-5 w-5' />
         </Button>
       </SheetTrigger>
-      <SheetContent side='left' className='w-72 p-0 border-r-0'>
+      <SheetContent side='left' className='w-72 p-0 border-r-0' hideClose>
         <SheetTitle className='sr-only'>Navigation</SheetTitle>
         <div className='flex flex-col h-full bg-sidebar'>
-          <div className='flex items-center gap-3 p-5 border-b border-sidebar-border'>
-            {logo || (
-              <div className='flex h-9 w-9 items-center justify-center rounded-xl bg-sidebar-primary'>
-                <span className='text-sm font-bold text-sidebar-primary-foreground'>
-                  A
-                </span>
-              </div>
-            )}
-            <span className='text-base font-bold text-sidebar-foreground'>
-              {companyName}
-            </span>
+          <div className='flex items-center justify-between gap-3 p-5 border-b border-sidebar-border'>
+            <div className='flex items-center gap-3 min-w-0'>
+              {logo || (
+                <div className='flex h-9 w-9 items-center justify-center rounded-xl bg-sidebar-primary flex-shrink-0'>
+                  <span className='text-sm font-bold text-sidebar-primary-foreground'>
+                    A
+                  </span>
+                </div>
+              )}
+              <span className='text-base font-bold text-sidebar-foreground truncate'>
+                {companyName}
+              </span>
+            </div>
+            <SheetClose asChild>
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                className='flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground focus:outline-none'
+              >
+                <PanelLeft className='h-4.5 w-4.5' />
+                <span className='sr-only'>Schließen</span>
+              </motion.button>
+            </SheetClose>
           </div>
           <div className='flex-1 py-4 overflow-y-auto scrollbar-hide'>
             <MobileSheetCloseContext.Provider value={() => setOpen(false)}>
@@ -571,7 +583,7 @@ function NewTabButton({
           onClick={handleClick}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          className='flex h-9 w-9 items-center justify-center text-muted-foreground transition-colors hover:text-foreground ml-1 mb-0.5 flex-shrink-0 new-tab-btn'
+          className='flex h-9 w-9 items-center justify-center text-muted-foreground transition-colors hover:text-foreground active:scale-90 ml-1 mb-0.5 flex-shrink-0 new-tab-btn'
         >
           <Plus className='h-4 w-4' />
         </button>
@@ -622,7 +634,7 @@ export function SidebarWithTabs({
   // Hydrate state from storage
   useEffect(() => {
     setIsClient(true);
-    const savedState = localStorage.getItem('sidebar-tabs-state-v2');
+    const savedState = localStorage.getItem('sidebar-tabs-state-v3');
 
     if (savedState) {
       try {
@@ -655,7 +667,7 @@ export function SidebarWithTabs({
 
     const handler = setTimeout(() => {
       localStorage.setItem(
-        'sidebar-tabs-state-v2',
+        'sidebar-tabs-state-v3',
         JSON.stringify({ tabs, activeTabId })
       );
     }, 500); // Debounce to prevent heavy writes
@@ -856,25 +868,25 @@ export function SidebarWithTabs({
                     )}
                   </AnimatePresence>
                 </div>
-                {!isCollapsed && !navContent && (
+                {!isCollapsed && (
                   <Button
                     variant='ghost'
                     size='icon'
                     onClick={() => setIsCollapsed(!isCollapsed)}
-                    className='h-8 w-8 text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent flex-shrink-0'
+                    className='h-8 w-8 text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent active:scale-90 transition-transform flex-shrink-0'
                   >
                     <PanelLeft className='h-4 w-4' />
                   </Button>
                 )}
               </div>
 
-              {isCollapsed && !navContent && (
+              {isCollapsed && (
                 <div className='flex justify-center py-2 border-b border-sidebar-border'>
                   <Button
                     variant='ghost'
                     size='icon'
                     onClick={() => setIsCollapsed(!isCollapsed)}
-                    className='h-8 w-8 text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent flex-shrink-0'
+                    className='h-8 w-8 text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent active:scale-90 transition-transform flex-shrink-0'
                   >
                     <PanelLeft className='h-4 w-4 rotate-180' />
                   </Button>
@@ -882,13 +894,15 @@ export function SidebarWithTabs({
               )}
 
               <div className='flex-1 py-4 overflow-y-auto scrollbar-hide'>
-                {navContent ?? (
+                {isCollapsed || !navContent ? (
                   <SidebarNavigation
                     navItems={navItems}
                     activeNavId={activeNavId}
                     isCollapsed={isCollapsed}
                     onItemClick={handleNavItemClick}
                   />
+                ) : (
+                  navContent
                 )}
               </div>
 
@@ -1013,7 +1027,7 @@ export function SidebarWithTabs({
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className='flex h-9 w-9 items-center justify-center text-muted-foreground transition-colors hover:text-foreground hover:bg-sidebar-accent rounded-lg mr-2 mb-0.5 flex-shrink-0'>
+                  <button className='flex h-9 w-9 items-center justify-center text-muted-foreground transition-colors hover:text-foreground hover:bg-sidebar-accent active:scale-90 rounded-lg mr-2 mb-0.5 flex-shrink-0'>
                     <MoreHorizontal className='h-5 w-5' />
                   </button>
                 </DropdownMenuTrigger>

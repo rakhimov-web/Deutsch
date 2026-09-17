@@ -10,13 +10,13 @@ export function PageHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-6 px-8 pt-10 pb-8 md:px-12 md:pt-12">
+    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 sm:gap-6 px-4 pt-6 pb-6 sm:px-8 sm:pt-10 sm:pb-8 md:px-12 md:pt-12">
       <div className="max-w-2xl">
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl md:text-4xl">
           {title}
         </h1>
         {lead && (
-          <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
+          <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground sm:mt-3 sm:text-[15px]">
             {lead}
           </p>
         )}
