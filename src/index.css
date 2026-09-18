@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "tailwindcss-animate";
 
 :root {
   --background: #15171b;
@@ -93,8 +94,44 @@
   --color-das: var(--das);
   --color-das-foreground: var(--das-foreground);
 
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  /* Typography — Gemini UI design system's stack. "Google Sans" itself
+     isn't a licensable web font, so the chain falls through to the same
+     system/Roboto fonts Google's own fallback uses; Roboto is self-hosted
+     below so the fallback is never just a generic system sans. */
+  --font-sans: "Google Sans Text", "Google Sans", "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-display: var(--font-sans);
+  --font-mono: "Google Sans Mono", "Roboto Mono", "Fira Code", ui-monospace, SFMono-Regular, monospace;
+
+  /* Gemini's type scale */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+  --leading-tight: 1.2;
+  --leading-relaxed: 1.6;
+}
+
+:root {
+  /* Color-root aliases so the Gemini hover/press utilities below read from
+     our own dark palette instead of undefined generic surface colors. */
+  --bg-surface: var(--card);
+  --bg-surface-hover: var(--accent);
+  --bg-surface-active: var(--secondary);
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  /* Gemini motion system */
+  --duration-short: 150ms;
+  --duration-medium: 250ms;
+  --duration-long: 400ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --ease-in: cubic-bezier(0.3, 0, 0.8, 0.15);
 }
 
 * {
@@ -121,6 +158,32 @@ body {
   scrollbar-width: none;
 }
 
+/* Themed scrollbar for scrollable content (main pane, popovers, etc.) —
+   thin, rounded, and drawn from the site's own palette instead of the
+   browser default. .scrollbar-hide areas (sidebar nav, tab strip) opt out
+   above since they scroll but shouldn't show a track at all. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--der);
+  background-clip: padding-box;
+}
+
 @keyframes accordion-down {
   from { height: 0; }
   to { height: var(--radix-accordion-content-height); }
@@ -131,3 +194,40 @@ body {
 }
 .animate-accordion-down { animation: accordion-down 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
 .animate-accordion-up { animation: accordion-up 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+
+/* Gemini motion system — reusable entrance/exit/hover/skeleton primitives.
+   Framer Motion covers most interactive transitions elsewhere; these are
+   for plain-CSS spots (hover lifts, one-off mount/unmount fades). */
+.gemini-hover {
+  transition: background-color var(--duration-short) var(--ease-standard),
+              transform var(--duration-short) var(--ease-standard);
+}
+.gemini-hover:hover {
+  background-color: var(--bg-surface-hover);
+  transform: translateY(-1px);
+}
+.gemini-hover:active {
+  background-color: var(--bg-surface-active);
+  transform: translateY(0);
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeOutDown {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(8px); }
+}
+.animate-enter { animation: fadeInUp var(--duration-medium) var(--ease-out) forwards; }
+.animate-exit { animation: fadeOutDown var(--duration-short) var(--ease-in) forwards; }
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton-text {
+  background: linear-gradient(90deg, var(--bg-surface) 25%, var(--bg-surface-hover) 50%, var(--bg-surface) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}

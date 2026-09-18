@@ -592,6 +592,7 @@ function NewTabButton({
         align='start'
         className='w-48 p-1 bg-popover border-border'
         sideOffset={8}
+        collisionPadding={16}
       >
         <div className='text-xs text-muted-foreground px-2 py-1.5 font-medium'>
           Schnellzugriff
